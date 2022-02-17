@@ -561,6 +561,7 @@ while robot_not_moved < 4: # while the robot hasn't been stationary for more tha
 
     pos = next_pos.copy()
 
+print("Ending exploration.")
 unique_cells = len(all_moves.keys())
 print("The robot arrived at ", unique_cells, " unique cells.")
 
