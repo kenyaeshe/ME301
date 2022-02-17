@@ -1,10 +1,46 @@
 # from mapper import *
 import random
+from map import *
 
 def enum(**enums):
     return type('Enum', (), enums)
 
 DIRECTION = enum(North=1, East=2, South=3, West=4)
+
+def checkSensors():
+    # set the threshold values for the sensors 
+    thresh_left_high = 800
+    thresh_left_low = 290
+
+    thresh_right_high = 800
+    thresh_right_low = 290
+
+    thresh_front_high = 2200
+    thresh_front_low = 1900
+
+    front_sensor_val = getSensorValue(3) # check later
+    right_sensor_val = getSensorValue(4) # check sensor ID
+    left_sensor_val = getSensorValue(2) # check sensor ID
+
+    sensorsBlocked = []
+
+    if (left_sensor_val >= thresh_left_low) and (left_sensor_val <= thresh_left_high):
+        sensorsBlocked.append(True)
+    else:
+        sensorsBlocked.append(False)
+
+    if (right_sensor_val >= thresh_right_low) and (right_sensor_val <= thresh_right_high):
+        sensorsBlocked.append(True)
+    else:
+        sensorsBlocked.append(False)
+    
+    if (front_sensor_val >= thresh_front_low) and (front_sensor_val <= thresh_front_high):
+        sensorsBlocked.append(True)
+    else:
+        sensorsBlocked.append(False)
+
+    return sensorsBlocked # order is [Left Sensor, Right Sensor, Front Sensor]
+
 def turn2NewPos(turn_command,current_position):
     # key point: all turns are made in reference to a global coordinate system set at the top left of the map 
     # & facing south
@@ -323,10 +359,11 @@ def decideNextMove(all_moves,current_pos,sensorsBlocked,moves_list):
     return next_pos
 
 # based on information on the past state and next state, move the robot
-def moveRobot(current_pos,next_pos):
+def moveRobot(current_pos,next_pos,robot_not_moved):
     # compare values of i,j,k in both states, if they are the same, robot should not move:
     if next_pos == current_pos:
         print("don't move")
+        robot_not_moved += 1 # increment robot not moved
         pass # don't move robot
     else:
         i_past = current_pos[0]
@@ -343,6 +380,7 @@ def moveRobot(current_pos,next_pos):
                 print("go forward")
             else:
                 print("don't move")
+                robot_not_moved += 1
         else:
             if ((k_past == DIRECTION.North) and (k_next == DIRECTION.South)) or \
             ((k_past == DIRECTION.South) and (k_next == DIRECTION.North)) or \
@@ -386,6 +424,8 @@ def moveRobot(current_pos,next_pos):
                         print("right turn")
                         # rightTurn() # uncomment later
                         # singleCell()
+
+    return robot_not_moved
 
 # updates map information at current position by tracking sensor information   
 def updateMap(obstacle_map, sensorsBlocked, current_position):
@@ -488,12 +528,12 @@ def updateMap(obstacle_map, sensorsBlocked, current_position):
         print('Error in updateMaps: Unknown value of DIRECTION entered.')
 
 ### TEST CODE: ###
-sensorsBlocked = [[True,True,False],[True,True,False],[False,True,True],
-                [True,True,False],[True,True,False],[True,False,True],
-                [True,True,False],[True,True,True],[True,True,False],
-                [False,True,True],[True,True,False],[False,False,False],
-                [True,True,False],[False,False,False],[True,True,False],
-                [False,True,False],[True,True,False]]
+# sensorsBlocked = [[True,True,False],[True,True,False],[False,True,True],
+#                 [True,True,False],[True,True,False],[True,False,True],
+#                 [True,True,False],[True,True,True],[True,True,False],
+#                 [False,True,True],[True,True,False],[False,False,False],
+#                 [True,True,False],[False,False,False],[True,True,False],
+#                 [False,True,False],[True,True,False]]
 
 # sensorsBlocked = [[True,True,False] for x in range(10)]
                   
@@ -501,28 +541,25 @@ all_moves = {}
 moves_list = []
 pos = (0,0,3)
 obstacle_map = []
-for combination in sensorsBlocked:
-    updateMap(obstacle_map,combination,pos)
-    # next_pos = decideNextMove(all_moves,pos,combination)[0]
-    # all_moves = decideNextMove(all_moves,pos,combination)[1]
-    next_pos = decideNextMove(all_moves,pos,combination,moves_list)
+sensorsBlocked = checkSensors()
+# for combination in sensorsBlocked:
+robot_not_moved = 0 # initialize counter
+while robot_not_moved < 4: # while the robot hasn't been stationary for more than 4 iterations
+    updateMap(obstacle_map,sensorsBlocked,pos)
+    next_pos = decideNextMove(all_moves,pos,sensorsBlocked,moves_list)
     print("next pos: ", next_pos)
     print("moves list: ", moves_list)
-    moveRobot(pos,next_pos)
+    robot_not_moved = moveRobot(pos,next_pos)
 
     next_pos_only = (next_pos[0],next_pos[1])
     next_heading = next_pos[2]
     if next_pos_only in all_moves.keys():
-        # if len(all_moves[next_pos_only]) < 4:
-        
         if next_heading not in all_moves[next_pos_only]:
             all_moves[next_pos_only].append(next_heading)
-            # if greater than 4, do nothing
     else:
         all_moves.update({next_pos_only:[next_heading]})
-    # print("all moves: ", all_moves)
 
-    pos = next_pos
+    pos = next_pos.copy()
 
 unique_cells = len(all_moves.keys())
 print("The robot arrived at ", unique_cells, " unique cells.")
