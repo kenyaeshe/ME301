@@ -152,8 +152,8 @@ def turn2NewPos(turn_command,current_position):
 def decideNextMove(all_moves,current_pos,sensorsBlocked,moves_list):
     possible_headings = ["North","South","East","West"] # a set
 
-    # if len(all_moves) == 0: # start position
-    #     all_moves.update({(0,0):[]})
+    if len(all_moves) == 0: # start position
+        all_moves.update({(0,0):[3]}) # seed the start position
 
     # first check if the current position has been visited already:
     all_positions = all_moves.keys() # get all the positions
@@ -171,95 +171,95 @@ def decideNextMove(all_moves,current_pos,sensorsBlocked,moves_list):
     if pos_only in all_positions: # if the cell has been visited before
         completed_headings = all_moves[pos_only] # get a list of headings at the current position
 
-        if len(completed_headings) == len(possible_headings):
-            # if all of north, south, east & west have been completed at the position,
-            # no more moves are possible -> entire map should have been traversed
-            print("Visted cell before & all possible moves completed.")
-            next_pos = current_pos  
-            next_heading = current_pos[2]
-            # don't change the robot's position or orientation
+        suggested_pos_list = []
+        suggested_headings = []
+        # sensorsBlocked = checkSensors()
+        if (sensorsBlocked[0] is True) and (sensorsBlocked[1] is True) and (sensorsBlocked[2] is True):
+            turn_command = "Turn Around"
+            suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
+            suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+
+        elif (sensorsBlocked[0] is True) and (sensorsBlocked[1] is True) and (sensorsBlocked[2] is False):
+        # left & right sensors are blocked but front sensor is not
+            turn_command = "Forward"
+            suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
+            suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+
+        elif (sensorsBlocked[0] is True) and (sensorsBlocked[1] is False) and (sensorsBlocked[2] is True):
+        # left & front sensors blocked while right sensor not
+            turn_command = "Right"
+            suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
+            suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+
+        elif (sensorsBlocked[0] is False) and (sensorsBlocked[1] and True) and (sensorsBlocked[2] is True):
+            # right & front sensors blocked
+            turn_command = "Left"
+            suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
+            suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+        
+        elif (sensorsBlocked[0] is True) and (sensorsBlocked[1] is False) and (sensorsBlocked[2] is False):
+            # only left sensor blocked -> can go forward OR right
+            possible_turn_commands = ["Forward","Right"]
+            # print("Turn command is: ", turn_command)
+            for command in possible_turn_commands:
+                suggested_headings.append(turn2NewPos(command,current_pos)[2])
+                suggested_pos_list.append(turn2NewPos(command,current_pos))
+
+        elif (sensorsBlocked[0] is False) and (sensorsBlocked[1] is True) and (sensorsBlocked[2] is False):
+            # only right sensor blocked -> can go forward OR left
+            possible_turn_commands = ["Left","Forward"]
+            for command in possible_turn_commands:
+                suggested_headings.append(turn2NewPos(command,current_pos)[2])
+                suggested_pos_list.append(turn2NewPos(command,current_pos))
+            
+        elif (sensorsBlocked[0] is False) and (sensorsBlocked[1] is False) and (sensorsBlocked[2] is True):
+            # only front sensor blocked -> can go left OR right
+            possible_turn_commands = ["Left","Right"]
+            for command in possible_turn_commands:
+                suggested_headings.append(turn2NewPos(command,current_pos)[2])
+                suggested_pos_list.append(turn2NewPos(command,current_pos))
+        
         else:
-            # print("Visited this cell before - moves may be possible.")
-            # check if all possible moves at that particular location have been completed
-            # current_possible_headings = set()
-            suggested_pos_list = []
-            suggested_headings = []
-            # sensorsBlocked = checkSensors()
-            if (sensorsBlocked[0] is True) and (sensorsBlocked[1] is True) and (sensorsBlocked[2] is True):
-                turn_command = "Turn Around"
-                suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
-                suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+            # if no sensors blocked but cell visited before,
+            # choose a random heading based on headings not yet visited
+            # COME BACK TO THIS!
+            possible_turn_commands = ["Forward","Left","Right"]
+            for command in possible_turn_commands:
+                suggested_headings.append(turn2NewPos(command,current_pos)[2])
+                suggested_pos_list.append(turn2NewPos(command,current_pos))
+        
+        # so now have a list of suggested headings based on the sensor data
+        # loop through the headings to figure out if any have not been completed yet
 
-            elif (sensorsBlocked[0] is True) and (sensorsBlocked[1] is True) and (sensorsBlocked[2] is False):
-            # left & right sensors are blocked but front sensor is not
-                turn_command = "Forward"
-                suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
-                suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+        print("suggested headings: ", suggested_headings)
+        print("suggested positions ", suggested_pos_list)
 
-            elif (sensorsBlocked[0] is True) and (sensorsBlocked[1] is False) and (sensorsBlocked[2] is True):
-            # left & front sensors blocked while right sensor not
-                turn_command = "Right"
-                suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
-                suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
+        # iterate through all suggested next moves
+        for ii in range(len(suggested_headings)):
+            head = suggested_headings[ii] # a particular next move
+            if head in completed_headings: # if this move has been completed
+                if head == current_pos[2]: # but if the heading is in the same direction as before
+                    next_pos = suggested_pos_list[ii]
+                    next_heading = suggested_headings[ii] # keep going forward
 
-            elif (sensorsBlocked[0] is False) and (sensorsBlocked[1] and True) and (sensorsBlocked[2] is True):
-                # right & front sensors blocked
-                turn_command = "Left"
-                suggested_headings.append(turn2NewPos(turn_command,current_pos)[2])
-                suggested_pos_list.append(turn2NewPos(turn_command,current_pos))
-            
-            elif (sensorsBlocked[0] is True) and (sensorsBlocked[1] is False) and (sensorsBlocked[2] is False):
-                # only left sensor blocked -> can go forward OR right
-                possible_turn_commands = ["Forward","Right"]
-                # print("Turn command is: ", turn_command)
-                for command in possible_turn_commands:
-                    suggested_headings.append(turn2NewPos(command,current_pos)[2])
-                    suggested_pos_list.append(turn2NewPos(command,current_pos))
+                # next_pos = suggested_pos_list[ii]
+                # next_heading = suggested_headings[ii]
+                else:
+                    # check how many times it came to that exact position
+                    times_visited = moves_list.count(suggested_pos_list[ii])
 
-            elif (sensorsBlocked[0] is False) and (sensorsBlocked[1] is True) and (sensorsBlocked[2] is False):
-                # only right sensor blocked -> can go forward OR left
-                possible_turn_commands = ["Left","Forward"]
-                for command in possible_turn_commands:
-                    suggested_headings.append(turn2NewPos(command,current_pos)[2])
-                    suggested_pos_list.append(turn2NewPos(command,current_pos))
-                
-            elif (sensorsBlocked[0] is False) and (sensorsBlocked[1] is False) and (sensorsBlocked[2] is True):
-                # only front sensor blocked -> can go left OR right
-                possible_turn_commands = ["Left","Right"]
-                for command in possible_turn_commands:
-                    suggested_headings.append(turn2NewPos(command,current_pos)[2])
-                    suggested_pos_list.append(turn2NewPos(command,current_pos))
-            
-            else:
-                # if no sensors blocked but cell visited before,
-                # choose a random heading based on headings not yet visited
-                # COME BACK TO THIS!
-                possible_turn_commands = ["Forward","Left","Right"]
-                turn_command = random.choice(possible_turn_commands)
-                next_pos = turn2NewPos(turn_command,current_pos)
-            
-            # so now have a list of suggested headings based on the sensor data
-            # loop through the headings to figure out if any have not been completed yet
-
-            print("suggested headings: ", suggested_headings)
-            print("suggested positions ", suggested_pos_list)
-            for ii in range(len(suggested_headings)):
-                head = suggested_headings[ii]
-                if head in completed_headings:
-                    if head == current_pos[2]:
+                    if times_visited < 4: # if it hasn't visited the cell too many times
                         next_pos = suggested_pos_list[ii]
                         next_heading = suggested_headings[ii]
 
-                    # next_pos = suggested_pos_list[ii]
-                    # next_heading = suggested_headings[ii]
                     else:
                         next_pos = current_pos
                         next_heading = current_pos[2] # keep this here in case all headings completed
                         continue # check next head
-                else:
-                    next_pos = suggested_pos_list[ii]
-                    next_heading = suggested_headings[ii]
-                    break # if one found, do not re-enter the loop
+            else:
+                next_pos = suggested_pos_list[ii]
+                next_heading = suggested_headings[ii]
+                break # if one found, do not re-enter the loop
 
     else: # robot arrived at a new cell, use sensors to determine next move
         print("Arrived at new cell!")
@@ -319,18 +319,6 @@ def decideNextMove(all_moves,current_pos,sensorsBlocked,moves_list):
             next_pos = turn2NewPos(turn_command,current_pos)
             next_heading = turn2NewPos(turn_command,current_pos)[2]
         
-
-    # next_pos_only = (next_pos[0],next_pos[1])
-    # if next_pos_only in all_moves.keys():
-    #     # if len(all_moves[next_pos_only]) < 4:
-    #     if next_heading not in all_moves[next_pos_only]:
-    #         all_moves[next_pos_only].append(next_heading)
-    #         # if greater than 4, do nothing
-    # else:
-    #     all_moves.update({next_pos_only:[next_heading]})
-    # print("all moves: ", all_moves)
-
-    # return next_pos, all_moves
     moves_list.append(next_pos)
     return next_pos
 
@@ -500,11 +488,14 @@ def updateMap(obstacle_map, sensorsBlocked, current_position):
         print('Error in updateMaps: Unknown value of DIRECTION entered.')
 
 ### TEST CODE: ###
-sensorsBlocked = [[False,True,False],[True,True,False],[True,False,True],
-                [True,True,False],[True,True,True],
-                [True,True,False],[True,True,False],
-                [True,True,False],[False,True,True],[False, True, False],
-                [True,True,False]]
+sensorsBlocked = [[True,True,False],[True,True,False],[False,True,True],
+                [True,True,False],[True,True,False],[True,False,True],
+                [True,True,False],[True,True,True],[True,True,False],
+                [False,True,True],[True,True,False],[False,False,False],
+                [True,True,False],[False,False,False],[True,True,False],
+                [False,True,False],[True,True,False]]
+
+# sensorsBlocked = [[True,True,False] for x in range(10)]
                   
 all_moves = {}
 moves_list = []
