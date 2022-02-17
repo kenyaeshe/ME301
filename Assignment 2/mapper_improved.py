@@ -248,11 +248,11 @@ def decideNextMove(all_moves,current_pos,sensorsBlocked,moves_list):
                     # check how many times it came to that exact position
                     times_visited = moves_list.count(suggested_pos_list[ii])
 
-                    if times_visited < 4: # if it hasn't visited the cell too many times
+                    if times_visited < 3: # if it hasn't visited the cell too many times
                         next_pos = suggested_pos_list[ii]
                         next_heading = suggested_headings[ii]
 
-                    else:
+                    else: # visited this cell several times in this direction
                         next_pos = current_pos
                         next_heading = current_pos[2] # keep this here in case all headings completed
                         continue # check next head
